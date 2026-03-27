@@ -1,26 +1,25 @@
-version: '1'
-
 services:
-  db:
-    image: postgres:15
-    restart: always
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   web:
     build: .
-    volumes:
-      - .:/app
     ports:
-      - "8000:8000"
+      - "${PORT:-8006}:8006"
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
-      - db
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
-volumes:
-  postgres_data:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
